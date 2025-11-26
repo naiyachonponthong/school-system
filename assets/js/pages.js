@@ -1,5 +1,4 @@
-﻿
-/**
+﻿/**
  * ===================================
  * PAGE RENDERING FUNCTIONS (COMPLETE)
  * ===================================
@@ -555,9 +554,7 @@ function renderStudentsList() {
   
   if (window.allClassesData && window.allClassesData.length > 0) {
     uniqueLevels = [...new Set(window.allClassesData.map(c => c.level))];
-    
-    // ✅ FIXED: ป้องกัน undefined ใน localeCompare
-    uniqueLevels.sort((a, b) => (a || '').toString().localeCompare((b || '').toString(), 'th', { numeric: true }));
+    uniqueLevels.sort((a, b) => a.localeCompare(b, 'th', { numeric: true }));
     
     uniqueLevels.forEach(level => {
       const isSelected = currentLevel === level;
@@ -577,8 +574,7 @@ function renderStudentsList() {
     }
     
     const uniqueRooms = [...new Set(classesForRoom.map(c => c.room))];
-    // ✅ FIXED: ป้องกัน undefined
-    uniqueRooms.sort((a, b) => (a || '').toString().localeCompare((b || '').toString(), 'th', { numeric: true }));
+    uniqueRooms.sort((a, b) => a.localeCompare(b, 'th', { numeric: true }));
     
     uniqueRooms.forEach(room => {
       const isSelected = currentRoom === room;
@@ -625,6 +621,7 @@ function renderStudentsList() {
     { label: 'สถานะ', field: 'status', render: (val) => `<span class="badge ${getStatusColor(val)}">${val === 'active' ? 'กำลังศึกษา' : val}</span>` }
   ];
 
+  // [⭐️ แก้ไขตรงนี้ ⭐️] เพิ่ม data-student-id และลบ onclick ออก
   const actions = (student) => `
     <button onclick="showStudentDetails('${student.id}')" class="p-2 text-gray-600 hover:bg-gray-50 rounded" title="ดูรายละเอียด">
       <i class="fas fa-eye"></i>
@@ -645,9 +642,11 @@ function renderStudentsList() {
     </button>
   `;
 
+  // 6. Attributes สำหรับ Dropdown
   const levelDisabledAttr = lockedLevel ? 'disabled class="form-select bg-gray-100 cursor-not-allowed"' : 'class="form-select"';
   const roomDisabledAttr = lockedRoom ? 'disabled class="form-select bg-gray-100 cursor-not-allowed"' : 'class="form-select"';
 
+  // 7. สร้าง HTML
   const html = `
     <div class="flex items-center justify-between mb-6">
       <h2 class="text-2xl font-bold text-gray-800">จัดการนักเรียน</h2>
@@ -708,6 +707,8 @@ function renderStudentsList() {
   `;
   
   document.getElementById('pageContent').innerHTML = html;
+  
+  // Attach Event Listeners สำหรับปุ่ม Edit/Delete
   attachStudentCardEventListeners();
 }
 
@@ -1440,6 +1441,7 @@ async function renderClassesPage() {
       return;
     }
     
+    // [⭐️ แก้ไข ⭐️] เก็บข้อมูลห้องเรียนไว้ใน window เพื่อให้ฟังก์ชัน deleteClass เรียกใช้ได้
     window.classesData = classesResult.data || [];
     const allStudents = studentsResult.success ? (studentsResult.data || []) : [];
     
@@ -1451,18 +1453,15 @@ async function renderClassesPage() {
       }
     });
 
-// ✅ แก้ไข: เพิ่ม ( || '') เพื่อกันค่า Null
-window.classesData.sort((a, b) => {
-  const levelA = (a.level || '').toString();
-  const levelB = (b.level || '').toString();
-  const roomA = (a.room || '').toString();
-  const roomB = (b.room || '').toString();
-
-  if (levelA !== levelB) {
-    return levelA.localeCompare(levelB, 'th-TH-u-nu-thai');
-  }
-  return roomA.localeCompare(roomB, 'th-TH-u-nu-thai');
-});
+    // [⭐️ แก้ไข ⭐️] เรียงลำดับห้องเรียนก่อนแสดงผล
+    window.classesData.sort((a, b) => {
+      // เทียบ level ก่อน (เช่น ป.1 มาก่อน ป.2)
+      if (a.level !== b.level) {
+        return a.level.localeCompare(b.level, 'th-TH-u-nu-thai');
+      }
+      // ถ้า level เดียวกัน ให้เทียบ room (เช่น /1 มาก่อน /2)
+      return a.room.localeCompare(b.room, 'th-TH-u-nu-thai');
+    });
     
     const html = `
       <div class="flex items-center justify-between mb-6">
@@ -1473,7 +1472,7 @@ window.classesData.sort((a, b) => {
       </div>
       
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        ${window.classesData.map(cls => { 
+        ${window.classesData.map(cls => { // [⭐️ แก้ไข ⭐️] ใช้ window.classesData
           const classKey = `${cls.level}-${cls.room}`;
           const studentCount = studentCounts[classKey] || 0;
           
@@ -1686,7 +1685,8 @@ function handleBatchMoveClick(modalId, currentClassId) {
 
 
 /**
- * [⭐️ คงไว้ ⭐️] แสดง Modal สำหรับ "ย้ายห้อง" (รองรับ 1 หรือหลายคน)
+ * [⭐️ แก้ไข ⭐️] แสดง Modal สำหรับ "ย้ายห้อง" (รองรับ 1 หรือหลายคน)
+ * (แก้ไข: เปลี่ยนการเรียงลำดับจาก class_id เป็น level/room เพื่อป้องกัน Error)
  * @param {Array<string>} studentIds - Array ของ ID นักเรียนที่จะย้าย
  * @param {string} currentClassId - ID ห้องเรียนปัจจุบัน (เพื่อกรองออกจาก List)
  */
@@ -1712,7 +1712,19 @@ async function showMoveStudentsModal(studentIds, currentClassId) {
     // 2. สร้าง options สำหรับห้องเรียนปลายทาง (กรองห้องปัจจุบันออก)
     const classOptions = window.classesData
       .filter(c => c.id !== currentClassId && c.status === 'active')
-      .sort((a, b) => a.class_id.localeCompare(b.class_id))
+      // [⭐️ แก้ไขจุดที่เกิด Error ⭐️] เปลี่ยน Logic การเรียงลำดับ
+      .sort((a, b) => {
+        // เรียงตามระดับชั้นก่อน (ก-ฮ)
+        const levelA = a.level || '';
+        const levelB = b.level || '';
+        if (levelA !== levelB) {
+          return levelA.localeCompare(levelB, 'th');
+        }
+        // ถ้าระดับชั้นเท่ากัน เรียงตามห้อง (ตัวเลข)
+        const roomA = a.room || '';
+        const roomB = b.room || '';
+        return roomA.localeCompare(roomB, 'th', { numeric: true });
+      })
       .map(c => ({ value: c.id, label: `${c.level}/${c.room} (ปี ${c.year})` }));
 
     hideLoading();
@@ -1744,7 +1756,7 @@ async function showMoveStudentsModal(studentIds, currentClassId) {
               <button type="button" onclick="closeModal('${modalId}')" class="btn btn-secondary">
                 ยกเลิก
               </button>
-              <button type_submit" class="btn btn-primary">
+              <button type="submit" class="btn btn-primary">
                 <i class="fas fa-check mr-2"></i>ยืนยันการย้าย
               </button>
             </div>
@@ -1772,9 +1784,8 @@ async function showMoveStudentsModal(studentIds, currentClassId) {
         (result) => {
           if (result.success) {
             showToast(result.message, 'success');
-            // รีเฟรชข้อมูลทั้ง 2 ส่วน
-            // viewClassStudents(currentClassId); // ไม่ต้องเปิด Modal เดิมซ้ำ
-            renderClassesPage(); // โหลดหน้าการ์ดห้องเรียนใหม่
+            // รีเฟรชหน้าห้องเรียน
+            renderClassesPage(); 
           }
         }
       );
@@ -1792,7 +1803,6 @@ async function editClass(classId) {
   showLoading('กำลังโหลดข้อมูล...');
   
   try {
-    // [⭐️ แก้ไข ⭐️] โหลดข้อมูลครูและห้องเรียนพร้อมกัน
     const [classesResult, teachersResult] = await Promise.all([
       callServerFunction('getClasses'),
       callServerFunction('getTeachers')
@@ -1811,7 +1821,6 @@ async function editClass(classId) {
       return;
     }
 
-    // สร้าง options ครู
     const teacherOptions = (teachersResult.data || []).map(teacher => ({
       value: teacher.id,
       label: `${teacher.name} (${getRoleLabel(teacher.role)})`
@@ -1826,10 +1835,12 @@ async function editClass(classId) {
         { value: 'ป.5', label: 'ป.5' }, { value: 'ป.6', label: 'ป.6' }
       ]},
       { name: 'room', label: 'ห้อง', type: 'text', required: true },
-      // [⭐️ แก้ไข ⭐️] ล็อกปีการศึกษา
+      
+      // [⭐️ แก้ไข ⭐️] แสดงปีการศึกษาเดิม แต่ล็อกไว้ไม่ให้แก้ (หรือถ้าอยากให้อัปเดตเป็นปีปัจจุบันก็แก้ value ตรงนี้)
+      // ปกติแก้ไขห้องเรียนเดิม ไม่ควรเปลี่ยนปีการศึกษาของห้องนั้นๆ อัตโนมัติ เพราะอาจเป็นห้องของปีก่อน
       { name: 'year', label: 'ปีการศึกษา', type: 'text', required: true, value: classData.year, disabled: true },
+      
       { name: 'capacity', label: 'ความจุ', type: 'number', required: true },
-      // [⭐️ แก้ไข ⭐️] เปลี่ยนเป็น Combobox
       { 
         name: 'homeroom_teacher_id', 
         label: 'ครูประจำชั้น', 
@@ -1843,10 +1854,11 @@ async function editClass(classId) {
     ];
     
     showFormModal('แก้ไขข้อมูลห้องเรียน', fields, async (data) => {
-      // [⭐️ แก้ไข ⭐️] เพิ่มตรรกะค้นหาชื่อครู และส่งค่า year ที่ถูก disable
       const selectedTeacher = (teachersResult.data || []).find(t => t.id === data.homeroom_teacher_id);
       data.homeroom_teacher_name = selectedTeacher ? selectedTeacher.name : '';
-      data.year = classData.year; // ส่งค่าปีการศึกษาเดิมกลับไป
+      
+      // ⭐️ ส่งปีการศึกษาเดิมกลับไป (เพราะ disabled field ไม่ส่งค่า)
+      data.year = classData.year; 
 
       await waitForResponse(
         () => callServerFunction('updateClass', classId, data),
@@ -1856,7 +1868,7 @@ async function editClass(classId) {
           renderClassesPage();
         }
       );
-    }, classData); // ส่ง classData เดิมเข้าไป (รวม homeroom_teacher_id)
+    }, classData);
     
   } catch (error) {
     console.error('Error editing class:', error);
@@ -1869,7 +1881,7 @@ async function showAddClassModal() {
   showLoading('กำลังโหลดข้อมูล...');
   
   try {
-    // [⭐️ แก้ไข ⭐️] โหลดข้อมูลครูและ Config พร้อมกัน
+    // [⭐️ แก้ไข ⭐️] โหลด Config มาด้วย เพื่อเอาปีการศึกษาปัจจุบัน
     const [teachersResult, configResult] = await Promise.all([
       callServerFunction('getTeachers'),
       callServerFunction('getConfig')
@@ -1880,6 +1892,7 @@ async function showAddClassModal() {
       label: `${teacher.name} (${getRoleLabel(teacher.role)})`
     }));
     
+    // ⭐️ ดึงปีการศึกษาปัจจุบันจาก Config (ถ้าไม่มีใช้ปี พ.ศ. ปัจจุบัน)
     const currentYear = configResult.success ? (configResult.data.current_year || new Date().getFullYear() + 543) : new Date().getFullYear() + 543;
     
     hideLoading();
@@ -1891,10 +1904,11 @@ async function showAddClassModal() {
         { value: 'ป.5', label: 'ป.5' }, { value: 'ป.6', label: 'ป.6' }
       ]},
       { name: 'room', label: 'ห้อง', type: 'text', required: true },
-      // [⭐️ แก้ไข ⭐️] ล็อกปีการศึกษา
+      
+      // [⭐️ แก้ไข ⭐️] ตั้งค่า value เริ่มต้นเป็นปีปัจจุบัน และ disabled ไว้ (ล็อกไม่ให้แก้)
       { name: 'year', label: 'ปีการศึกษา', type: 'text', required: true, value: currentYear, disabled: true },
+      
       { name: 'capacity', label: 'ความจุ', type: 'number', required: true, value: '40' },
-      // [⭐️ แก้ไข ⭐️] เปลี่ยนเป็น Combobox
       { 
         name: 'homeroom_teacher_id', 
         label: 'ครูประจำชั้น', 
@@ -1904,10 +1918,12 @@ async function showAddClassModal() {
     ];
     
     showFormModal('เพิ่มห้องเรียนใหม่', fields, async (data) => {
-      // [⭐️ แก้ไข ⭐️] เพิ่มตรรกะค้นหาชื่อครู และส่งค่า year ที่ถูก disable
+      // หาชื่อครูเพื่อบันทึก
       const selectedTeacher = (teachersResult.data || []).find(t => t.id === data.homeroom_teacher_id);
       data.homeroom_teacher_name = selectedTeacher ? selectedTeacher.name : '';
-      data.year = currentYear; // ส่งค่าปีการศึกษาที่ล็อกไว้
+      
+      // ⭐️ ส่งปีการศึกษาปัจจุบันไปด้วย (เพราะในฟอร์มมัน disabled ค่าอาจไม่ส่งไป)
+      data.year = currentYear; 
 
       await waitForResponse(
         () => callServerFunction('createClass', data),
@@ -2927,6 +2943,7 @@ async function renderScoresPage() {
 function handleSubjectChangeForScores(subjectId) {
   const classSelect = document.getElementById('scoreClassSelect');
   
+  // 1. ล้างค่าเดิมและล็อก
   classSelect.innerHTML = '<option value="">-- กำลังโหลด... --</option>';
   classSelect.disabled = true;
   classSelect.classList.add('bg-gray-100', 'cursor-not-allowed');
@@ -2936,22 +2953,25 @@ function handleSubjectChangeForScores(subjectId) {
     return;
   }
 
+  // 2. ค้นหาวิชา
   const subject = window.allSubjectsForScores.find(s => s.id === subjectId);
   if (!subject) {
     classSelect.innerHTML = '<option value="">-- เกิดข้อผิดพลาด --</option>';
     return;
   }
 
-  const subjectLevel = subject.level;
+  // 3. กรองห้องเรียนตาม level ของวิชา
+  const subjectLevel = subject.level; // เช่น "ป.1" หรือ "all"
   
   let classesToShow = [];
   if (subjectLevel === 'all') {
-    classesToShow = window.allClassesForScores;
+    classesToShow = window.allClassesForScores; // ถ้าวิชาสำหรับ "all" ให้แสดงทุกห้อง
   } else {
-    classesToShow = window.allClassesForScores.filter(c => c.level === subjectLevel);
+    classesToShow = window.allClassesForScores.filter(c => c.level === subjectLevel); // กรองตามชั้น
   }
 
-  classSelect.innerHTML = '<option value="">-- เลือกห้องเรียน --</option>';
+  // 4. สร้าง <option> ใหม่
+  classSelect.innerHTML = '<option value="">-- เลือกห้องเรียน --</option>'; // เคลียร์
   
   if (classesToShow.length === 0) {
      const option = document.createElement('option');
@@ -2962,18 +2982,16 @@ function handleSubjectChangeForScores(subjectId) {
   } else {
     classesToShow
       .filter(c => c.status === 'active')
-      // ✅ FIXED: ป้องกัน null/undefined
+      // [ ⭐️⭐️⭐️ นี่คือส่วนที่แก้ไข ⭐️⭐️⭐️ ]
+      // (เปลี่ยนจากการ sort ด้วย class_id ที่อาจไม่มี)
       .sort((a, b) => {
-        const levelA = (a.level || '').toString();
-        const levelB = (b.level || '').toString();
-        const roomA = (a.room || '').toString();
-        const roomB = (b.room || '').toString();
-
-        if (levelA !== levelB) {
-          return levelA.localeCompare(levelB, 'th-TH-u-nu-thai');
+        if (a.level !== b.level) {
+          return a.level.localeCompare(b.level, 'th-TH-u-nu-thai');
         }
-        return roomA.localeCompare(roomB, 'th-TH-u-nu-thai');
+        // (มาเป็นการ sort ด้วย level และ room ที่มีแน่นอน)
+        return a.room.localeCompare(b.room, 'th-TH-u-nu-thai');
       })
+      // [ ⭐️⭐️⭐️ สิ้นสุดส่วนที่แก้ไข ⭐️⭐️⭐️ ]
       .forEach(cls => {
         const option = document.createElement('option');
         option.value = cls.id;
@@ -2981,6 +2999,7 @@ function handleSubjectChangeForScores(subjectId) {
         classSelect.appendChild(option);
       });
     
+    // 5. ปลดล็อก Dropdown
     classSelect.disabled = false;
     classSelect.classList.remove('bg-gray-100', 'cursor-not-allowed');
   }
@@ -4242,19 +4261,6 @@ function renderActivitiesPage() {
   }
 }
 
-// ===================================
-// READING PAGE (NEW)
-// ===================================
-
-function renderReadingSelectionPage() {
-  // ฟังก์ชันนี้ถูกย้ายไปอยู่ใน JS-Pages-Reading.js
-  if (typeof renderReadingSelectionPage === 'function') {
-    renderReadingSelectionPage();
-  } else {
-    renderBreadcrumb(['หน้าแรก', 'บันทึกการอ่านฯ']);
-    document.getElementById('pageContent').innerHTML = '<p class="text-center py-12 text-red-500">Error: ไม่พบไฟล์ JS-Pages-Reading.js</p>';
-  }
-}
 
 // ===================================
 // PP5 PAGE
@@ -4285,19 +4291,7 @@ function renderPP6Page() {
   }
 }
 
-// ===================================
-// REPORTS PAGE
-// ===================================
 
-function renderReportsPage() {
-  // ฟังก์ชันนี้ถูกย้ายไปอยู่ใน JS-Pages-Reports.js
-  if (typeof renderReportsPage === 'function') {
-    renderReportsPage();
-  } else {
-    renderBreadcrumb(['หน้าแรก', 'รายงาน']);
-    document.getElementById('pageContent').innerHTML = '<p class="text-center py-12 text-red-500">Error: ไม่พบไฟล์ JS-Pages-Reports.js</p>';
-  }
-}
 
 // ===================================
 // USERS PAGE
@@ -4621,9 +4615,6 @@ async function renderSettingsPage() {
       <form id="settingsForm" onsubmit="handleSaveSettings(event); return false;">
         <div class="flex items-center justify-between mb-6">
           <h2 class="text-2xl font-bold text-gray-800">ตั้งค่าระบบ</h2>
-          <button type="submit" class="btn btn-primary">
-            <i class="fas fa-save mr-2"></i>บันทึกการเปลี่ยนแปลง
-          </button>
         </div>
         
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -4879,50 +4870,7 @@ async function renderSettingsPage() {
                 </button>
               </div>
             </div>
-            <div class="card p-6">
-              <h3 class="text-lg font-bold text-gray-800 mb-4">Google Drive Folders</h3>
-              
-              <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                <div class="flex">
-                  <i class="fas fa-info-circle text-blue-600 mr-3 mt-1"></i>
-                  <div class="text-sm text-blue-800">
-                    <strong>สำคัญ:</strong> ตั้งค่า "Photos Folder ID" เพื่อใช้เก็บรูปนักเรียนและโลโก้โรงเรียน
-                  </div>
-                </div>
-              </div>
-              
-              <p class="text-sm text-gray-500 mb-4">
-                วาง ID ของ Folder ที่คุณสร้างไว้ใน Google Drive
-              </p>
-              
-              <div class="space-y-4">
-                <div>
-                  <label class="form-label">Photos Folder ID (รูปนักเรียน + โลโก้)</label>
-                  <input 
-                    type="text" 
-                    name="photos_folder_id" 
-                    class="form-input" 
-                    value="${escapeHTML(config.drive_settings?.photos_folder_id || '')}"
-                    placeholder="ตัวอย่าง: 1a2b3c4d5e6f7g8h9i..."
-                  >
-                  <p class="text-xs text-gray-500 mt-1">
-                    วิธีหา Folder ID: เปิด Folder ใน Google Drive → ดู URL → ID คือส่วนหลังจาก /folders/
-                  </p>
-                </div>
-
-                <div>
-                  <label class="form-label">Documents Folder ID (เอกสาร)</label>
-                  <input 
-                    type="text" 
-                    name="documents_folder_id" 
-                    class="form-input" 
-                    value="${escapeHTML(config.drive_settings?.documents_folder_id || '')}"
-                    placeholder="ตัวอย่าง: 1a2b3c4d5e6f7g8h9i..."
-                  >
-                  <p class="text-xs text-gray-500 mt-1">
-                    สำหรับเก็บเอกสารต่างๆของโรงเรียน (เอกสารตัวอย่าง PDF ฯลฯ)
-                  </p>
-                </div>
+            
               </div>
             </div>
           </div>
@@ -5314,9 +5262,88 @@ function formatThaiDate(dateString, includeTime = false) {
   return result;
 }
 
-// ===================================
-// [⭐️ แก้ไข ⭐️] PROFILE PAGE
-// ===================================
+/**
+ * [⭐️ อัปเดต ⭐️] แสดงหน้าโปรไฟล์ (เพิ่ม Tab เปลี่ยนรหัสผ่าน)
+ */
+/**
+ * [⭐️ ใหม่ ⭐️] แสดง Tab เปลี่ยนรหัสผ่านแบบ Standalone
+ */
+function renderPasswordChangeTab() {
+  return `
+    <div class="max-w-2xl mx-auto">
+      <div class="text-center mb-8">
+        <div class="w-16 h-16 bg-gradient-to-br from-red-100 to-pink-100 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+          <i class="fas fa-shield-alt text-2xl text-red-600"></i>
+        </div>
+        <h3 class="text-3xl font-bold text-gray-900">เปลี่ยนรหัสผ่าน</h3>
+        <p class="text-gray-600 text-base mt-2">รักษาความปลอดภัยของบัญชีของคุณโดยตั้งรหัสผ่านที่รัดกุม</p>
+      </div>
+
+      <div class="card p-8 shadow-lg">
+        <form id="changePasswordForm" onsubmit="handleChangePassword(event)">
+          <div class="mb-6">
+            <label class="block text-sm font-semibold text-gray-800 mb-2">รหัสผ่านปัจจุบัน</label>
+            <div class="relative">
+              <input type="password" name="old_password" id="old_password" class="form-input w-full pl-4 pr-10 bg-gray-50 border border-gray-300 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all rounded-lg py-2.5 text-base" required placeholder="กรอกรหัสผ่านปัจจุบัน">
+              <button type="button" onclick="togglePasswordVisibility('old_password', 'icon_old_pass')" class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-500 hover:text-blue-600 focus:outline-none" tabindex="-1">
+                <i id="icon_old_pass" class="fas fa-eye"></i>
+              </button>
+            </div>
+          </div>
+
+          <hr class="border-gray-200 my-8">
+
+          <div class="mb-6">
+            <label class="block text-sm font-semibold text-gray-800 mb-2">รหัสผ่านใหม่</label>
+            <div class="relative">
+              <input type="password" name="new_password" id="new_password" class="form-input w-full pl-4 pr-10 bg-gray-50 border border-gray-300 focus:bg-white focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all rounded-lg py-2.5 text-base" required minlength="6" placeholder="อย่างน้อย 6 ตัวอักษร" oninput="checkPasswordStrength(this.value)">
+              <button type="button" onclick="togglePasswordVisibility('new_password', 'icon_new_pass')" class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-500 hover:text-green-600 focus:outline-none" tabindex="-1">
+                <i id="icon_new_pass" class="fas fa-eye"></i>
+              </button>
+            </div>
+            <div class="mt-3">
+              <div class="flex justify-between items-center mb-1">
+                <p class="text-xs text-gray-600 font-medium">ความยากรหัสผ่าน:</p>
+                <p id="password-strength-text" class="text-xs font-semibold text-gray-600">-</p>
+              </div>
+              <div class="h-2 w-full bg-gray-200 rounded-full overflow-hidden">
+                <div id="password-strength-bar" class="h-full bg-red-500 w-0 transition-all duration-500"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-8">
+            <label class="block text-sm font-semibold text-gray-800 mb-2">ยืนยันรหัสผ่านใหม่</label>
+            <div class="relative">
+              <input type="password" name="confirm_password" id="confirm_password" class="form-input w-full pl-4 pr-10 bg-gray-50 border border-gray-300 focus:bg-white focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all rounded-lg py-2.5 text-base" required placeholder="พิมพ์รหัสผ่านเดียวกัน" oninput="checkPasswordMatch()">
+              <button type="button" onclick="togglePasswordVisibility('confirm_password', 'icon_confirm_pass')" class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-500 hover:text-green-600 focus:outline-none" tabindex="-1">
+                <i id="icon_confirm_pass" class="fas fa-eye"></i>
+              </button>
+            </div>
+            <p id="password-match-text" class="text-xs mt-2 h-4"></p>
+          </div>
+
+          <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg mb-8 flex gap-3">
+            <i class="fas fa-info-circle text-blue-600 flex-shrink-0 mt-0.5"></i>
+            <div class="text-sm text-blue-800">
+              <p class="font-semibold mb-1">💡 เคล็ดลับรหัสผ่านที่ปลอดภัย:</p>
+              <ul class="text-xs space-y-1 opacity-90">
+                <li>• ใช้ความยาวอย่างน้อย 8 ตัวอักษร</li>
+                <li>• รวมตัวอักษรพิมพ์ใหญ่ ตัวอักษรพิมพ์เล็ก ตัวเลข และสัญลักษณ์</li>
+                <li>• หลีกเลี่ยงข้อมูลส่วนตัว เช่น วันเกิด หรือชื่อ</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="flex gap-3">
+            <button type="button" onclick="switchProfileTab(1)" class="btn btn-secondary flex-1"><i class="fas fa-arrow-left mr-2"></i>ย้อนกลับ</button>
+            <button type="submit" id="btn-save-password" class="btn btn-primary flex-1 shadow-lg hover:shadow-xl transform transition hover:-translate-y-0.5"><i class="fas fa-save mr-2"></i>บันทึกรหัสผ่านใหม่</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+}
 
 async function renderProfilePage() {
   renderBreadcrumb(['หน้าแรก', 'โปรไฟล์ส่วนตัว']);
@@ -5333,55 +5360,101 @@ async function renderProfilePage() {
     const profileData = profileResult.data;
     const user = profileData.user; 
     
-    // ตรวจสอบว่า user ไม่ใช่ null
     if (!user) {
-      console.error('Error loading profile: User data is null.');
-      showToast('ไม่พบข้อมูลผู้ใช้ อาจถูกลบออกจากระบบ', 'error');
       document.getElementById('pageContent').innerHTML = renderEmptyState('ไม่พบข้อมูลผู้ใช้', 'fas fa-user-times');
       hideLoading();
       return;
     }
     
-    // [ ⭐️⭐️⭐️ เพิ่ม: Define isStudent ที่นี่ ⭐️⭐️⭐️ ]
     const isStudent = user.role === 'student';
-    
-    // (โค้ดนี้ปลอดภัยแล้ว เพราะ user ไม่ใช่ null)
     window.currentUserFullData = user; 
     const userPhoto = user.photo_url || 'https://placehold.co/150x150/e0e0e0/808080?text=No+Photo';
+    const initial = getInitials(user.name);
 
     const html = `
-      <div class="max-w-5xl mx-auto">
-        <div class="card p-6 mb-6">
-          <div class="flex items-center space-x-6">
-            <img id="profilePagePhoto" src="${userPhoto}" alt="Profile" class="w-24 h-24 rounded-full object-cover border-4 border-gray-100 shadow-md">
-            <div>
-              <h2 class="text-3xl font-bold text-gray-800">${user.name}</h2>
-              <p class="text-lg text-gray-600">${getRoleLabel(user.role)}</p>
-              <p class="text-sm text-gray-500">Username: ${user.username || user.student_code || ''}</p>
+      <div class="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+        <!-- Hero Section -->
+        <div class="relative h-48 bg-gradient-to-r from-blue-500 to-indigo-600 overflow-hidden">
+          <div class="absolute inset-0 opacity-10">
+            <i class="fas fa-circle absolute top-5 left-10 text-white text-6xl"></i>
+            <i class="fas fa-circle absolute bottom-5 right-10 text-white text-8xl"></i>
+          </div>
+        </div>
+
+        <div class="max-w-6xl mx-auto px-4 relative -mt-20 mb-8">
+          <!-- Profile Header Card -->
+          <div class="card shadow-2xl p-6 md:p-8 border-0">
+            <div class="flex flex-col md:flex-row items-start md:items-center gap-6">
+              <div class="relative flex-shrink-0">
+                <div class="w-40 h-40 rounded-2xl overflow-hidden border-4 border-white shadow-xl bg-gray-100">
+                  <img id="profilePagePhoto" src="${userPhoto}" onerror="this.src='https://placehold.co/160x160?text=${initial}'" alt="${user.name}" class="w-full h-full object-cover">
+                </div>
+              </div>
+              
+              <div class="flex-1">
+                <h1 class="text-4xl font-bold text-gray-900 mb-2">${user.name}</h1>
+                <p class="text-lg font-semibold text-blue-600">${getRoleLabel(user.role)}</p>
+                
+                <div class="flex flex-wrap items-center gap-3 mt-4 mb-6">
+                  <span class="inline-flex items-center gap-2 px-3 py-1 bg-green-50 text-green-700 rounded-full text-sm font-medium">
+                    <i class="fas fa-circle text-green-500 text-xs"></i>
+                    ใช้งานอยู่
+                  </span>
+                </div>
+                
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-4 pt-6 border-t border-gray-200">
+                  <div>
+                    <p class="text-xs text-gray-500 uppercase tracking-wider font-semibold">Username</p>
+                    <p class="font-mono font-bold text-gray-800 mt-1">${user.username || '-'}</p>
+                  </div>
+                  <div>
+                    <p class="text-xs text-gray-500 uppercase tracking-wider font-semibold">เข้าสู่ระบบล่าสุด</p>
+                    <p class="font-semibold text-gray-800 mt-1 text-sm">${formatThaiDate(user.last_login, true)}</p>
+                  </div>
+                  <div>
+                    <p class="text-xs text-gray-500 uppercase tracking-wider font-semibold">สถานะ</p>
+                    <p class="font-semibold text-green-600 mt-1"><i class="fas fa-check-circle mr-1"></i>ปกติ</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-    <div class="flex border-b border-gray-200 mb-6">
-      <button id="tabBtn1" onclick="switchProfileTab(1)" class="profile-tab-btn active">
-        <i class="fas fa-user-edit mr-2"></i>ข้อมูลส่วนตัว
-      </button>
-      ${!isStudent ? `
-      <button id="tabBtn2" onclick="switchProfileTab(2)" class="profile-tab-btn">
-        <i class="fas fa-tasks mr-2"></i>ภาระงาน
-      </button>
-      ` : ''}
-    </div>
+        <!-- Tabs Navigation -->
+        <div class="max-w-6xl mx-auto px-4 mb-8">
+          <div class="flex gap-1 overflow-x-auto pb-0 border-b-2 border-gray-200">
+            <button id="tabBtn1" onclick="switchProfileTab(1)" class="profile-tab-btn active group relative px-4 py-3 font-medium text-gray-700 whitespace-nowrap">
+              <i class="fas fa-user-circle mr-2"></i> ข้อมูลส่วนตัว
+              <span class="absolute bottom-0 left-0 right-0 h-1 bg-blue-600 scale-x-100"></span>
+            </button>
+            ${!isStudent ? `
+            <button id="tabBtn2" onclick="switchProfileTab(2)" class="profile-tab-btn group relative px-4 py-3 font-medium text-gray-500 whitespace-nowrap hover:text-gray-700">
+              <i class="fas fa-chalkboard-teacher mr-2"></i> ภาระงานสอน
+              <span class="absolute bottom-0 left-0 right-0 h-1 bg-indigo-600 scale-x-0"></span>
+            </button>
+            <button id="tabBtn3" onclick="switchProfileTab(3)" class="profile-tab-btn group relative px-4 py-3 font-medium text-gray-500 whitespace-nowrap hover:text-gray-700">
+              <i class="fas fa-lock mr-2"></i> เปลี่ยนรหัสผ่าน
+              <span class="absolute bottom-0 left-0 right-0 h-1 bg-red-600 scale-x-0"></span>
+            </button>
+            ` : ''}
+          </div>
+        </div>
 
-    <div id="tabContent1" class="profile-tab-content">
-      ${renderProfileTab1(user)}
-    </div>
-    
-    ${!isStudent ? `
-    <div id="tabContent2" class="profile-tab-content card p-6 hidden">
-      ${renderProfileTab2(profileData)}
-    </div>
-    ` : ''}
+        <!-- Tab Contents -->
+        <div class="max-w-6xl mx-auto px-4 pb-12">
+          <div id="tabContent1" class="profile-tab-content">
+            ${renderProfileTab1(user)}
+          </div>
+          ${!isStudent ? `
+          <div id="tabContent2" class="profile-tab-content hidden">
+            ${renderProfileTab2(profileData)}
+          </div>
+          <div id="tabContent3" class="profile-tab-content hidden">
+            ${renderPasswordChangeTab()}
+          </div>
+          ` : ''}
+        </div>
       </div>
     `;
     
@@ -5594,30 +5667,40 @@ function renderProfileTab2(data) {
     
     <div class="mb-6">
       <h4 class="text-lg font-semibold text-gray-700 mb-3">ครูประจำชั้น</h4>
-      ${homeroom.length > 0 ? 
-        homeroom.map(cls => `
-          <div class="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-            <span class="font-bold text-blue-700">ชั้น ${cls.level}/${cls.room} (ปี ${cls.year})</span>
-          </div>
-        `).join('') :
-        '<p class="text-gray-500">ไม่ได้เป็นครูประจำชั้น</p>'
-      }
+      
+      <!-- ⭐️ เพิ่ม class "space-y-3" ตรงนี้ เพื่อเว้นระยะห่างระหว่างกล่อง -->
+      <div class="space-y-3">
+        ${homeroom.length > 0 ? 
+          homeroom.map(cls => `
+            <div class="p-3 bg-blue-50 border border-blue-200 rounded-lg shadow-sm">
+              <span class="font-bold text-blue-700 text-lg">ชั้น ${cls.level}/${cls.room}</span>
+              <span class="text-blue-600 ml-2 text-sm">(ปี ${cls.year})</span>
+            </div>
+          `).join('') :
+          '<p class="text-gray-500 italic bg-gray-50 p-3 rounded-lg border border-dashed">ไม่ได้เป็นครูประจำชั้น</p>'
+        }
+      </div>
     </div>
 
     <div>
       <h4 class="text-lg font-semibold text-gray-700 mb-3">วิชาที่สอน (${subjects.length} วิชา)</h4>
-      <div class="space-y-2">
+      
+      <!-- ⭐️ เพิ่ม class "space-y-3" ตรงนี้ด้วย -->
+      <div class="space-y-3">
       ${subjects.length > 0 ? 
         subjects.map(subj => `
-          <div class="p-3 bg-gray-50 border rounded-lg flex justify-between items-center">
+          <div class="p-4 bg-gray-50 border rounded-lg flex justify-between items-center hover:shadow-md transition-shadow">
             <div>
-              <p class="font-semibold text-gray-800">${subj.subject_name}</p>
-              <p class="text-sm text-gray-600">(${subj.subject_code}) - ชั้น ${subj.level === 'all' ? 'ทุกระดับชั้น' : subj.level}</p>
+              <p class="font-bold text-gray-800 text-lg mb-1">${subj.subject_name}</p>
+              <p class="text-sm text-gray-600 font-mono bg-white px-2 py-0.5 rounded border inline-block">
+                ${subj.subject_code}
+              </p>
+              <span class="text-sm text-gray-500 ml-2">ชั้น ${subj.level === 'all' ? 'ทุกระดับชั้น' : subj.level}</span>
             </div>
-            <span class="badge badge-secondary">${subj.subject_group}</span>
+            <span class="badge badge-secondary px-3 py-1">${subj.subject_group}</span>
           </div>
         `).join('') :
-        '<p class="text-gray-500">ไม่พบวิชาที่รับผิดชอบ</p>'
+        '<p class="text-gray-500 italic bg-gray-50 p-3 rounded-lg border border-dashed">ไม่พบวิชาที่รับผิดชอบ</p>'
       }
       </div>
     </div>
@@ -5673,41 +5756,143 @@ async function handleSaveProfile(event) {
 }
 
 /**
- * [ ⭐️ ใหม่ ⭐️ ] บันทึกการเปลี่ยนรหัสผ่าน (Tab 1)
+ * [⭐️ ปรับปรุงใหม่ ⭐️] ฟังก์ชันจัดการการเปลี่ยนรหัสผ่าน (UI สวยงาม + Validation)
  */
 async function handleChangePassword(event) {
   event.preventDefault();
   
-  const form = event.target;
-  const formData = new FormData(form);
-  const data = Object.fromEntries(formData);
+  const btn = document.getElementById('btn-save-password');
+  const originalBtnContent = btn.innerHTML;
   
-  // 1. ตรวจสอบรหัสผ่านใหม่ตรงกัน
-  if (data.new_password !== data.confirm_password) {
-    showToast('รหัสผ่านใหม่และการยืนยันไม่ตรงกัน', 'warning');
-    return;
-  }
-  
-  // 2. ตรวจสอบความยาว
-  if (data.new_password.length < 6) {
+  const formData = new FormData(event.target);
+  const oldPass = formData.get('old_password');
+  const newPass = formData.get('new_password');
+  const confirmPass = formData.get('confirm_password');
+
+  // 1. Validation พื้นฐาน
+  if (newPass.length < 6) {
     showToast('รหัสผ่านใหม่ต้องมีอย่างน้อย 6 ตัวอักษร', 'warning');
+    document.getElementById('new_password').focus();
     return;
   }
-  
-  // 3. เรียก Server
-  await waitForResponse(
-    () => callServerFunction('changePassword', data.old_password, data.new_password),
-    'กำลังเปลี่ยนรหัสผ่าน...',
-    (result) => {
+
+  if (newPass !== confirmPass) {
+    showToast('รหัสผ่านใหม่และการยืนยันไม่ตรงกัน', 'warning');
+    document.getElementById('confirm_password').focus();
+    return;
+  }
+
+  if (oldPass === newPass) {
+    showToast('รหัสผ่านใหม่ต้องไม่ซ้ำกับรหัสผ่านเดิม', 'warning');
+    return;
+  }
+
+  // 2. เปลี่ยนปุ่มเป็นสถานะ Loading
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> กำลังบันทึก...';
+  btn.classList.add('opacity-75', 'cursor-not-allowed');
+
+  try {
+      // 3. Call Server
+      const result = await callServerFunction('changePassword', oldPass, newPass);
+
       if (result.success) {
-        showToast('เปลี่ยนรหัสผ่านสำเร็จ', 'success');
-        form.reset(); // ล้างค่าในฟอร์ม
+          // Success State
+          btn.innerHTML = '<i class="fas fa-check"></i> สำเร็จ!';
+          btn.classList.remove('btn-primary');
+          btn.classList.add('btn-success');
+          
+          showToast('เปลี่ยนรหัสผ่านสำเร็จ! ระบบจะออกจากระบบใน 3 วินาที...', 'success', 3000);
+          
+          event.target.reset(); // Clear Form
+          
+          // บังคับ Logout หลังจาก 3 วินาที
+          setTimeout(() => {
+              handleLogout();
+          }, 3000);
       } else {
-        // showToast(result.message, 'error'); // waitForResponse จัดการให้แล้ว
-        console.error(result.message);
+          // Error State (เช่น รหัสเดิมผิด)
+          showToast(result.message, 'error');
+          
+          // Reset ปุ่ม
+          btn.disabled = false;
+          btn.innerHTML = originalBtnContent;
+          btn.classList.remove('opacity-75', 'cursor-not-allowed');
+          
+          // Focus ช่องรหัสเดิมถ้าผิด
+          if(result.message.includes('เดิม')) {
+             document.getElementById('old_password').focus();
+          }
       }
+  } catch (error) {
+      console.error(error);
+      showToast('เกิดข้อผิดพลาดในการเชื่อมต่อ', 'error');
+      // Reset ปุ่ม
+      btn.disabled = false;
+      btn.innerHTML = originalBtnContent;
+      btn.classList.remove('opacity-75', 'cursor-not-allowed');
+  }
+}
+
+/**
+ * [⭐️ ใหม่ ⭐️] ตรวจสอบความยากรหัสผ่านแบบ Real-time
+ */
+function checkPasswordStrength(password) {
+    const bar = document.getElementById('password-strength-bar');
+    const text = document.getElementById('password-strength-text');
+    
+    let strength = 0;
+    
+    if (password.length >= 6) strength += 1;
+    if (password.length >= 10) strength += 1;
+    if (/[A-Z]/.test(password)) strength += 1;
+    if (/[0-9]/.test(password)) strength += 1;
+    if (/[^A-Za-z0-9]/.test(password)) strength += 1;
+
+    let color = 'bg-red-500';
+    let label = 'อ่อนมาก';
+    let width = '10%';
+
+    switch (strength) {
+        case 0: case 1: width = '20%'; color = 'bg-red-500'; label = 'อ่อน'; break;
+        case 2: width = '40%'; color = 'bg-orange-500'; label = 'พอใช้'; break;
+        case 3: width = '60%'; color = 'bg-yellow-500'; label = 'ปานกลาง'; break;
+        case 4: width = '80%'; color = 'bg-blue-500'; label = 'ดี'; break;
+        case 5: width = '100%'; color = 'bg-green-500'; label = 'ยอดเยี่ยม'; break;
     }
-  );
+
+    if (password.length === 0) { width = '0%'; label = '-'; }
+
+    bar.style.width = width;
+    bar.className = `h-full transition-all duration-500 ${color}`;
+    text.innerText = `ความยาก: ${label}`;
+    text.className = `text-xs mt-1 text-right font-medium ${color.replace('bg-', 'text-')}`;
+}
+
+/**
+ * [⭐️ ใหม่ ⭐️] ตรวจสอบว่ารหัสผ่านตรงกันหรือไม่แบบ Real-time
+ */
+function checkPasswordMatch() {
+    const p1 = document.getElementById('new_password').value;
+    const p2 = document.getElementById('confirm_password').value;
+    const text = document.getElementById('password-match-text');
+    const input2 = document.getElementById('confirm_password');
+
+    if (p2.length === 0) {
+        text.innerHTML = '';
+        input2.classList.remove('border-red-500', 'border-green-500');
+        return;
+    }
+
+    if (p1 === p2) {
+        text.innerHTML = '<span class="text-green-600"><i class="fas fa-check-circle"></i> รหัสผ่านตรงกัน</span>';
+        input2.classList.remove('border-red-500');
+        input2.classList.add('border-green-500');
+    } else {
+        text.innerHTML = '<span class="text-red-600"><i class="fas fa-times-circle"></i> รหัสผ่านไม่ตรงกัน</span>';
+        input2.classList.remove('border-green-500');
+        input2.classList.add('border-red-500');
+    }
 }
 
 /**
@@ -5765,6 +5950,31 @@ function initializeSettingsPageThailandAutoComplete() {
   
   // 4. เริ่มการตรวจสอบ
   initLogic();
+}
+
+/**
+ * [⭐️ ใหม่ ⭐️] ฟังก์ชัน togglePasswordVisibility
+ * ใช้ fa-eye-slash เหมือน index.php (รับ 2 parameters: inputId และ iconId)
+ */
+function togglePasswordVisibility(inputId, iconId) {
+  const input = document.getElementById(inputId);
+  const icon = document.getElementById(iconId);
+  
+  if (!input) return;
+  
+  if (input.type === "password") {
+    input.type = "text";
+    if (icon) {
+      icon.classList.remove('fa-eye');
+      icon.classList.add('fa-eye-slash');
+    }
+  } else {
+    input.type = "password";
+    if (icon) {
+      icon.classList.remove('fa-eye-slash');
+      icon.classList.add('fa-eye');
+    }
+  }
 }
 
 console.log('✅ JS-Pages (Complete) loaded successfully');

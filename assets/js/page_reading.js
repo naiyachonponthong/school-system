@@ -1,5 +1,4 @@
-﻿
-/**
+﻿/**
  * ===================================
  * PAGE: READING (บันทึกการอ่าน คิดวิเคราะห์ และเขียน)
  * ===================================
@@ -12,7 +11,6 @@ const READING_EVAL_OPTIONS = [
   { label: 'ผ่าน', value: 'ผ่าน' },
   { label: 'ไม่ผ่าน', value: 'ไม่ผ่าน' }
 ];
-// -----------------
 
 // Global state
 window.readingData = {
@@ -28,7 +26,6 @@ window.readingData = {
 async function renderReadingSelectionPage() {
   renderBreadcrumb(['หน้าแรก', 'บันทึกข้อมูล', 'บันทึกการอ่านฯ']);
   
-  // (ใช้สิทธิ์เดียวกับหน้าพฤติกรรม/กิจกรรม)
   const role = window.currentUser.role;
   if (role !== 'homeroom' && role !== 'admin' && role !== 'registrar' && role !== 'principal') {
     showNoPermission();
@@ -67,8 +64,7 @@ async function renderReadingSelectionPage() {
       </div>
     </div>
     
-    <div id="readingEntryContainer" class="mt-6">
-      </div>
+    <div id="readingEntryContainer" class="mt-6"></div>
   `;
   
   document.getElementById('pageContent').innerHTML = html;
@@ -87,14 +83,12 @@ async function renderReadingSelectionPage() {
     let allClasses = classesResult.success ? classesResult.data : [];
     let classesToShow = [];
 
-    // กรองห้องเรียน
     if (role === 'admin' || role === 'registrar' || role === 'principal') {
       classesToShow = allClasses;
     } else {
       classesToShow = allClasses.filter(c => c.homeroom_teacher_id === window.currentUser.id);
     }
     
-    // ตั้งค่าปีและภาคเรียน
     let currentYear = new Date().getFullYear() + 543;
     if (configResult.success) {
       currentYear = configResult.data.current_year || currentYear.toString();
@@ -108,7 +102,6 @@ async function renderReadingSelectionPage() {
     
     yearSelect.innerHTML = availableYears.map(year => `<option value="${year}" ${year === currentYear.toString() ? 'selected' : ''}>${year}</option>`).join('');
 
-    // สร้าง Dropdown ห้องเรียน
     classSelect.innerHTML = '<option value="">-- เลือกห้องเรียน --</option>';
     if (classesToShow.length === 0) {
       classSelect.innerHTML = `<option value="" disabled>${role === 'homeroom' ? 'ไม่พบห้องเรียนที่คุณเป็นครูประจำชั้น' : 'ไม่พบห้องเรียนในระบบ'}</option>`;
@@ -122,7 +115,7 @@ async function renderReadingSelectionPage() {
     }
 
   } catch (error) {
-    console.error('Error loading reading page selections:', error);
+    console.error('Error loading reading page:', error);
     showToast('เกิดข้อผิดพลาดในการโหลดข้อมูล', 'error');
   } finally {
     hideLoading();
@@ -130,7 +123,7 @@ async function renderReadingSelectionPage() {
 }
 
 /**
- * 2. โหลดข้อมูลนักเรียนและข้อมูลการอ่าน
+ * 2. โหลดข้อมูล
  */
 async function loadReadingData() {
   const classId = document.getElementById('readingClassSelect').value;
@@ -160,7 +153,7 @@ async function loadReadingData() {
 }
 
 /**
- * 3. วาดรายการนักเรียน
+ * 3. Render List
  */
 function renderReadingList() {
   const { students } = window.readingData;
@@ -211,21 +204,25 @@ function renderReadingList() {
   document.getElementById('readingEntryContainer').innerHTML = html;
 }
 
-/**
- * 4. Helper: วาดแถว (Desktop)
- */
 function renderReadingRow(student) {
   const isRecorded = !!student.reading_id;
   const statusBadge = isRecorded
     ? `<span class="badge badge-success">บันทึกแล้ว</span>`
     : `<span class="badge badge-secondary">ยังไม่บันทึก</span>`;
   
+  const getStatusColor = (val) => {
+      if(val === 'ดีเยี่ยม') return 'text-green-600';
+      if(val === 'ดี') return 'text-blue-600';
+      if(val === 'ผ่าน') return 'text-yellow-600';
+      return 'text-red-600';
+  }
+
   return `
     <tr id="row-${student.student_id}" data-student-id="${student.student_id}">
       <td class="text-center">${student.student_number || '-'}</td>
       <td class="font-mono">${student.student_code}</td>
       <td class="font-semibold">${student.student_name}</td>
-      <td class="text-center font-bold ${getTraitColor(student.status)}">${student.status || '-'}</td>
+      <td class="text-center font-bold ${getStatusColor(student.status)}">${student.status || '-'}</td>
       <td class="text-center">${statusBadge}</td>
       <td class="text-center">
         <button onclick="showReadingEditModal('${student.student_id}')" class="btn btn-primary btn-sm">
@@ -236,14 +233,18 @@ function renderReadingRow(student) {
   `;
 }
 
-/**
- * 5. Helper: วาดการ์ด (Mobile)
- */
 function renderReadingCard(student) {
   const isRecorded = !!student.reading_id;
   const statusBadge = isRecorded
     ? `<span class="badge badge-success">บันทึกแล้ว</span>`
     : `<span class="badge badge-secondary">ยังไม่บันทึก</span>`;
+
+  const getStatusColor = (val) => {
+      if(val === 'ดีเยี่ยม') return 'text-green-600';
+      if(val === 'ดี') return 'text-blue-600';
+      if(val === 'ผ่าน') return 'text-yellow-600';
+      return 'text-red-600';
+  }
 
   return `
     <div id="card-${student.student_id}" class="card p-4 shadow-md" data-student-id="${student.student_id}">
@@ -252,7 +253,7 @@ function renderReadingCard(student) {
         ${statusBadge}
       </div>
       <p class="font-semibold text-gray-800 text-lg mb-3">${student.student_name}</p>
-      <p class="mb-3">ผลการประเมิน: <span class="font-bold ${getTraitColor(student.status)}">${student.status || '-'}</span></p>
+      <p class="mb-3">ผลการประเมิน: <span class="font-bold ${getStatusColor(student.status)}">${student.status || '-'}</span></p>
       
       <button onclick="showReadingEditModal('${student.student_id}')" class="btn btn-primary w-full">
         <i class="fas fa-edit mr-2"></i>${isRecorded ? 'แก้ไขข้อมูล' : 'บันทึกข้อมูล'}
@@ -297,32 +298,32 @@ function showReadingEditModal(studentId) {
     `บันทึกการอ่านฯ: ${studentData.student_name}`,
     fields,
     async (formData) => {
-      // 1. สร้าง object ที่จะส่งไป Server
       const readingRecord = {
         ...formData,
-        id: studentData.reading_id || null, // (สำคัญ) ส่ง id เดิมถ้ามี
+        id: studentData.reading_id || null,
         student_id: studentData.student_id,
         class_id: window.readingData.classId,
         semester: window.readingData.semester,
         year: window.readingData.year,
       };
 
-      // 2. เรียก Server
       await waitForResponse(
         () => callServerFunction('saveOrUpdateReading', readingRecord),
         'กำลังบันทึกข้อมูล...',
         (result) => {
           if (result.success) {
             showToast('บันทึกข้อมูลสำเร็จ', 'success');
-            // 3. อัปเดตข้อมูลใน window
+            
+            // [⭐️ แก้ไข UPDATE UI ⭐️]
             const index = window.readingData.students.findIndex(s => s.student_id === studentId);
             if (index !== -1) {
               window.readingData.students[index] = {
-                ...studentData,
-                ...result.data 
+                ...window.readingData.students[index],
+                ...result.data,
+                reading_id: result.data.id // ⭐️ สำคัญ: อัปเดต ID
               };
             }
-            // 4. วาด List ใหม่
+            // Re-render
             renderReadingList();
           }
         }
@@ -331,5 +332,3 @@ function showReadingEditModal(studentId) {
     initialData
   );
 }
-
-console.log('✅ JS-Pages-Reading loaded successfully');

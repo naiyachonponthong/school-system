@@ -1,11 +1,10 @@
-﻿
-/**
+﻿/**
  * ===================================
  * PAGE: BEHAVIORS (บันทึกพฤติกรรม)
  * ===================================
  */
 
-// --- ค่าคงที่สำหรับคุณลักษณะอันพึงประสงค์ (สามารถแก้ไขได้) ---
+// --- ค่าคงที่สำหรับคุณลักษณะอันพึงประสงค์ ---
 const BEHAVIOR_TRAITS = [
   { id: 'trait_1', label: '1. รักชาติ ศาสน์ กษัตริย์' },
   { id: 'trait_2', label: '2. ซื่อสัตย์สุจริต' },
@@ -30,38 +29,29 @@ const BEHAVIOR_OVERALL_OPTIONS = [
   { label: 'ผ่าน', value: 'ผ่าน' },
   { label: 'ไม่ผ่าน', value: 'ไม่ผ่าน' }
 ];
-// ----------------------------------------------------
 
-// --- (ใหม่) เกณฑ์การคำนวณผลสรุป (จากคะแนน 100) ---
+// --- เกณฑ์การคำนวณผลสรุป ---
 function getOverallBehaviorFromScore(score) {
-  if (score >= 90) return 'ดีเยี่ยม';
-  if (score >= 80) return 'ดี';
+  if (score >= 80) return 'ดีเยี่ยม';
+  if (score >= 70) return 'ดี';
   if (score >= 50) return 'ผ่าน';
   return 'ไม่ผ่าน';
 }
 
-/** * (ใหม่) Helper: คำนวณคะแนนพฤติกรรมอัตโนมัติ
+/** 
+ * Helper: คำนวณคะแนนพฤติกรรมอัตโนมัติ
  * @param {string} modalId - ID ของ Modal
  */
 function calculateBehaviorScore(modalId) {
-  // 1. ค้นหา Form (⭐️ [แก้ไข] ⭐️)
   const modal = document.getElementById(modalId);
-  if (!modal) {
-    console.error('calculateBehaviorScore: Could not find modal with ID:', modalId);
-    return;
-  }
+  if (!modal) return;
   
-  const form = modal.querySelector('form'); // ⭐️ ค้นหา <form> ที่อยู่ "ข้างใน" Modal
-  if (!form) {
-    console.error('calculateBehaviorScore: Could not find form inside modal:', modalId);
-    return;
-  }
-  // ⭐️ [สิ้นสุดการแก้ไข] ⭐️
+  const form = modal.querySelector('form');
+  if (!form) return;
 
   let totalPoints = 0;
   const maxPoints = BEHAVIOR_TRAITS.length * 3; // 8 ข้อ * 3 คะแนน = 24
 
-  // 2. วนลูป 8 คุณลักษณะ เพื่อรวมคะแนน (0-3)
   BEHAVIOR_TRAITS.forEach(trait => {
     const select = form.querySelector(`[name="${trait.id}"]`);
     if (select) {
@@ -69,23 +59,18 @@ function calculateBehaviorScore(modalId) {
     }
   });
 
-  // 3. แปลงเป็นคะแนนเต็ม 100 (ปัดเศษ)
-  // (คะแนนรวม / 24) * 100
+  // แปลงเป็นคะแนนเต็ม 100
   const conductScore = Math.round((totalPoints / maxPoints) * 100);
-
-  // 4. หาผลสรุป
   const overallBehavior = getOverallBehaviorFromScore(conductScore);
 
-  // 5. อัปเดตค่าในฟอร์ม
   const scoreInput = document.getElementById('conduct_score');
   const overallSelect = document.getElementById('overall_behavior');
 
   if (scoreInput) scoreInput.value = conductScore;
   if (overallSelect) overallSelect.value = overallBehavior;
 }
-// ----------------------------------------------------
 
-// Global state for this page
+// Global state
 window.behaviorData = {
   students: [],
   classId: null,
@@ -99,7 +84,6 @@ window.behaviorData = {
 async function renderBehaviorSelectionPage() {
   renderBreadcrumb(['หน้าแรก', 'บันทึกพฤติกรรม']);
   
-  // ตรวจสอบสิทธิ์ (เฉพาะครูประจำชั้น หรือ Admin)
   const role = window.currentUser.role;
   if (role !== 'homeroom' && role !== 'admin' && role !== 'registrar' && role !== 'principal') {
     showNoPermission();
@@ -138,8 +122,7 @@ async function renderBehaviorSelectionPage() {
       </div>
     </div>
     
-    <div id="behaviorEntryContainer" class="mt-6">
-      </div>
+    <div id="behaviorEntryContainer" class="mt-6"></div>
   `;
   
   document.getElementById('pageContent').innerHTML = html;
@@ -158,15 +141,12 @@ async function renderBehaviorSelectionPage() {
     let allClasses = classesResult.success ? classesResult.data : [];
     let classesToShow = [];
 
-    // กรองห้องเรียน
     if (role === 'admin' || role === 'registrar' || role === 'principal') {
-      classesToShow = allClasses; // Admin เห็นทุกห้อง
+      classesToShow = allClasses;
     } else {
-      // 'homeroom' เห็นเฉพาะห้องตัวเอง
       classesToShow = allClasses.filter(c => c.homeroom_teacher_id === window.currentUser.id);
     }
     
-    // ตั้งค่าปีและภาคเรียน
     let currentYear = new Date().getFullYear() + 543;
     if (configResult.success) {
       currentYear = configResult.data.current_year || currentYear.toString();
@@ -184,7 +164,6 @@ async function renderBehaviorSelectionPage() {
       yearSelect.innerHTML += `<option value="${year}" ${year === currentYear.toString() ? 'selected' : ''}>${year}</option>`;
     });
 
-    // สร้าง Dropdown ห้องเรียน
     classSelect.innerHTML = '<option value="">-- เลือกห้องเรียน --</option>';
     if (classesToShow.length === 0) {
       classSelect.innerHTML = `<option value="" disabled>${role === 'homeroom' ? 'ไม่พบห้องเรียนที่คุณเป็นครูประจำชั้น' : 'ไม่พบห้องเรียนในระบบ'}</option>`;
@@ -198,7 +177,7 @@ async function renderBehaviorSelectionPage() {
     }
 
   } catch (error) {
-    console.error('Error loading behavior page selections:', error);
+    console.error('Error loading behavior page:', error);
     showToast('เกิดข้อผิดพลาดในการโหลดข้อมูล', 'error');
   } finally {
     hideLoading();
@@ -206,7 +185,7 @@ async function renderBehaviorSelectionPage() {
 }
 
 /**
- * 2. โหลดข้อมูลนักเรียนและข้อมูลพฤติกรรม
+ * 2. โหลดข้อมูล
  */
 async function loadBehaviorData() {
   const classId = document.getElementById('behaviorClassSelect').value;
@@ -236,16 +215,15 @@ async function loadBehaviorData() {
 }
 
 /**
- * 3. วาดรายการนักเรียน
+ * 3. Render List
  */
 function renderBehaviorList() {
   const { students, classId, semester, year } = window.behaviorData;
   const classData = document.getElementById('behaviorClassSelect').selectedOptions[0].text;
 
-  // สรุปผล
   const summary = { 'recorded': 0, 'not_recorded': 0 };
   students.forEach(s => {
-    if (s.behavior_id) { // behavior_id คือ id ของ record
+    if (s.behavior_id) {
       summary.recorded++;
     } else {
       summary.not_recorded++;
@@ -296,9 +274,6 @@ function renderBehaviorList() {
   document.getElementById('behaviorEntryContainer').innerHTML = html;
 }
 
-/**
- * 4. Helper: วาดแถว (Desktop)
- */
 function renderBehaviorRow(student) {
   const isRecorded = !!student.behavior_id;
   const statusBadge = isRecorded
@@ -322,9 +297,6 @@ function renderBehaviorRow(student) {
   `;
 }
 
-/**
- * 5. Helper: วาดการ์ด (Mobile)
- */
 function renderBehaviorCard(student) {
   const isRecorded = !!student.behavior_id;
   const statusBadge = isRecorded
@@ -367,7 +339,6 @@ function showBehaviorEditModal(studentId) {
     return;
   }
 
-  // สร้าง Fields
   const fields = [
     { type: 'section', label: 'สรุปผล' },
     { 
@@ -376,7 +347,8 @@ function showBehaviorEditModal(studentId) {
       type: 'number', 
       required: true, 
       colSpan: 1, 
-      disabled: true // ⭐️ [แก้ไข] ล็อกช่องนี้
+      disabled: true,
+      id: 'conduct_score' // Add ID
     },
     { 
       name: 'overall_behavior', 
@@ -385,7 +357,8 @@ function showBehaviorEditModal(studentId) {
       options: BEHAVIOR_OVERALL_OPTIONS, 
       required: true, 
       colSpan: 2, 
-      disabled: true // ⭐️ [แก้ไข] ล็อกช่องนี้
+      disabled: true,
+      id: 'overall_behavior' // Add ID
     },
     
     { type: 'section', label: 'คุณลักษณะอันพึงประสงค์' },
@@ -395,7 +368,8 @@ function showBehaviorEditModal(studentId) {
       type: 'select',
       options: BEHAVIOR_EVALUATION_OPTIONS,
       required: true,
-      colSpan: 1 // 1 คอลัมน์ (แสดงแนวตั้ง)
+      colSpan: 1,
+      id: trait.id // Add ID for event listener
     })),
     
     { type: 'section', label: 'ข้อเสนอแนะ' },
@@ -403,91 +377,79 @@ function showBehaviorEditModal(studentId) {
     { name: 'improvement_note', label: 'พฤติกรรมที่ควรปรับปรุง', type: 'textarea', colSpan: 3 }
   ];
 
-  // เตรียมข้อมูลเริ่มต้น
   const initialData = {
     conduct_score: studentData.conduct_score || '100',
     overall_behavior: studentData.overall_behavior || 'ดีเยี่ยม',
     positive_note: studentData.positive_note || '',
     improvement_note: studentData.improvement_note || '',
-    ...studentData.traits // แตก object traits ที่มีอยู่
+    ...studentData.traits
   };
   
-  // ตั้งค่าเริ่มต้นให้ trait ที่ยังไม่มีค่า
   BEHAVIOR_TRAITS.forEach(trait => {
     if (!initialData[trait.id]) {
-      initialData[trait.id] = '3'; // ค่าเริ่มต้น "ดีเยี่ยม (3)"
+      initialData[trait.id] = '3';
     }
   });
 
-  // แสดง Modal
+  // Modal ID
+  const modalId = 'behaviorFormModal';
+
   showFormModal(
     `บันทึกพฤติกรรม: ${studentData.student_name}`,
     fields,
     async (formData) => {
-      // 1. รวบรวมข้อมูลเมื่อ Submit
       const traits = {};
       BEHAVIOR_TRAITS.forEach(trait => {
         traits[trait.id] = formData[trait.id];
-        delete formData[trait.id]; // ลบออกจาก formData หลัก
+        delete formData[trait.id];
       });
 
-      // 2. สร้าง object ที่จะส่งไป Server
       const behaviorRecord = {
-        ...formData, // (formData จะไม่มีค่า conduct_score, overall_behavior เพราะมัน disabled)
-        id: studentData.behavior_id || null, // (สำคัญ) ส่ง id เดิมถ้ามี, หรือ null ถ้าสร้างใหม่
+        ...formData,
+        id: studentData.behavior_id || null, // ส่ง ID เดิมถ้ามี
         student_id: studentData.student_id,
         class_id: window.behaviorData.classId,
         semester: window.behaviorData.semester,
         year: window.behaviorData.year,
-        traits: traits, // object ของ traits
-        
-        // ⭐️ [แก้ไข] ดึงค่าจากช่องที่ disabled มาใส่เอง
+        traits: traits,
         conduct_score: document.getElementById('conduct_score').value,
         overall_behavior: document.getElementById('overall_behavior').value
       };
 
-      // 3. เรียก Server
       await waitForResponse(
         () => callServerFunction('saveOrUpdateBehavior', behaviorRecord),
         'กำลังบันทึกข้อมูล...',
         (result) => {
           if (result.success) {
             showToast('บันทึกข้อมูลสำเร็จ', 'success');
-            // 4. อัปเดตข้อมูลใน window.behaviorData
+            
+            // [⭐️ แก้ไข UPDATE UI ⭐️]
             const index = window.behaviorData.students.findIndex(s => s.student_id === studentId);
             if (index !== -1) {
-              // รวมข้อมูลนักเรียนเดิม กับข้อมูลพฤติกรรมใหม่
               window.behaviorData.students[index] = {
-                ...studentData, // ข้อมูลนักเรียน (code, name, number)
-                ...result.data  // ข้อมูลพฤติกรรมที่ Server ส่งกลับมา
+                ...window.behaviorData.students[index],
+                ...result.data, // ข้อมูลจาก Server
+                behavior_id: result.data.id // ⭐️ สำคัญ: อัปเดต behavior_id
               };
             }
-            // 5. วาด List ใหม่
+            // Re-render
             renderBehaviorList();
           }
         }
       );
     },
     initialData,
-    'behaviorFormModal' // Modal ID
+    modalId // ส่ง ID ไปให้ showFormModal
   );
 
-  // ⭐️ [เพิ่ม] ผูก Event Listeners ให้กับ 8 traits
+  // Attach event listeners
   setTimeout(() => {
-    // ID ของ Modal คือ 'behaviorFormModal'
-    const modalId = 'behaviorFormModal'; 
-    
     BEHAVIOR_TRAITS.forEach(trait => {
-      // ⭐️ ใช้ ID ของฟิลด์ (ซึ่งเราตั้งให้ตรงกับ trait.id)
       const traitSelect = document.getElementById(trait.id); 
       if (traitSelect) {
         traitSelect.addEventListener('change', () => calculateBehaviorScore(modalId));
       }
     });
-    
-    // ⭐️ [เพิ่ม] คำนวณคะแนนครั้งแรกเมื่อเปิด Modal
     calculateBehaviorScore(modalId);
-  }, 200); // หน่วงเวลาเล็กน้อยให้ Modal สร้างเสร็จ
+  }, 200);
 }
-
-console.log('✅ JS-Pages-Behaviors loaded successfully');

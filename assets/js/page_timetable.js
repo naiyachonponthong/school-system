@@ -62,7 +62,7 @@ function renderAdminTimetable_Entry() {
   
   // 1. สร้าง 'options' array สำหรับ Combobox
   const teacherOptions = window.timetableState.allTeachers
-    .sort((a, b) => (a.name || '').toString().localeCompare((b.name || '').toString(), 'th'))
+    .sort((a, b) => a.name.localeCompare(b.name, 'th'))
     .map(t => ({
       value: t.id,
       label: `${t.name} (${getRoleLabel(t.role)})` // เพิ่ม Role ให้ชัดเจนขึ้น

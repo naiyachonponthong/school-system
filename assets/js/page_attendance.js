@@ -1,9 +1,4 @@
 ﻿
-/**
- * ===================================
- * PAGE: ATTENDANCE (บันทึกการเข้าเรียน)
- * ===================================
- */
 
 // Global state for this page
 window.attendanceData = {

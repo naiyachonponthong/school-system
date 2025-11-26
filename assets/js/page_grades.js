@@ -142,22 +142,37 @@ async function loadGradeReport() {
  */
 function renderGradeReportUI(data) {
   const { studentInfo, scores, behavior, activities, gpa, year, semester } = data;
-  
-  if (!studentInfo) {
-    return renderEmptyState('ไม่พบข้อมูลนักเรียน', 'fas fa-user-times');
-  }
+  if (!studentInfo) return renderEmptyState('ไม่พบข้อมูลนักเรียน', 'fas fa-user-times');
   
   const fullName = `${studentInfo.prefix || ''} ${studentInfo.firstname} ${studentInfo.lastname}`.trim();
-  const initial = getInitials(fullName);
   const semesterText = semester === 'all' ? 'ทั้งปีการศึกษา' : `ภาคเรียนที่ ${semester}`;
 
+  // ⭐️ Helper Functions (แก้ปัญหา null)
+  const formatScore = (v) => (v === null || v === undefined || v === '') ? '-' : parseFloat(v).toFixed(2);
+  const formatGrade = (v) => (v === null || v === undefined || v === '') ? '-' : v;
+  const formatPassStatus = (v) => (v === null || v === undefined || v === '') ? '-' : v;
+
+  const getGradeColor = (v) => {
+      if(!v || isNaN(v)) return 'text-gray-500';
+      v = parseFloat(v);
+      if(v >= 4) return 'text-green-600';
+      if(v >= 3) return 'text-blue-600';
+      if(v >= 2) return 'text-yellow-600';
+      if(v >= 1) return 'text-orange-500';
+      return 'text-red-600';
+  };
+
+  const getTraitLabel = (val) => ({'3':'ดีเยี่ยม','2':'ดี','1':'ผ่าน','0':'ไม่ผ่าน'}[val] || '-');
+  const getTraitColor = (val) => ({'3':'text-green-600','2':'text-blue-600','1':'text-yellow-600','0':'text-red-600'}[val] || 'text-gray-500');
+
   return `
-    <div class="card p-4 md:p-8"> <div class="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-6 mb-6 pb-6 border-b">
+    <div class="card p-4 md:p-8">
+      <div class="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-6 mb-6 pb-6 border-b">
         ${studentInfo.photo_url ? `
           <img src="${studentInfo.photo_url}" alt="${fullName}" class="w-20 h-20 md:w-24 md:h-24 rounded-full object-cover border-4 border-gray-100 shadow-md">
         ` : `
           <div class="w-20 h-20 md:w-24 md:h-24 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-3xl md:text-4xl font-semibold shadow-md">
-            ${initial}
+            ${getInitials(fullName)}
           </div>
         `}
         <div class="flex-1 text-center sm:text-left w-full">
@@ -190,26 +205,27 @@ function renderGradeReportUI(data) {
               </tr>
             </thead>
             <tbody>
-              ${scores.length > 0 ? scores.map((s, index) => `
+              ${scores && scores.length > 0 ? scores.map((s, index) => `
                 <tr class="${index % 2 === 1 ? 'bg-gray-50' : ''} hover:bg-blue-50 transition-colors">
                   <td class="font-mono text-sm">${s.subject_code}</td>
                   <td class="font-semibold text-gray-700">${s.subject_name}</td>
                   <td class="text-center">${s.credit}</td>
-                  <td class="text-center">${s.total_score}</td>
-                  <td class="text-center font-bold text-lg ${getGradeColor(s.gpa_value)}">${s.grade}</td>
-                  <td class="text-center font-semibold ${s.pass_status === 'ผ่าน' ? 'text-green-600' : 'text-red-600'}">
-                    ${s.pass_status}
+                  <td class="text-center">${formatScore(s.total_score)}</td>
+                  <td class="text-center font-bold text-lg ${getGradeColor(s.gpa_value)}">${formatGrade(s.grade)}</td>
+                  <td class="text-center font-semibold ${s.pass_status === 'ผ่าน' ? 'text-green-600' : (s.pass_status === 'ไม่ผ่าน' ? 'text-red-600' : 'text-gray-400')}">
+                    ${formatPassStatus(s.pass_status)}
                   </td>
                 </tr>
               `).join('') : `
-                <tr><td colspan="6" class="text-center py-6 text-gray-500">ไม่พบข้อมูลผลการเรียน</td></tr>
+                <tr><td colspan="6" class="text-center py-6 text-gray-500">ยังไม่มีข้อมูลผลการเรียน</td></tr>
               `}
             </tbody>
           </table>
         </div>
-
+        
+        <!-- Mobile View -->
         <div class="md:hidden space-y-3">
-          ${scores.length > 0 ? scores.map(s => `
+          ${scores && scores.length > 0 ? scores.map(s => `
             <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm relative overflow-hidden">
               <div class="absolute left-0 top-0 bottom-0 w-1 ${s.pass_status === 'ผ่าน' ? 'bg-green-500' : 'bg-red-500'}"></div>
               
@@ -220,7 +236,7 @@ function renderGradeReportUI(data) {
                     <span class="text-xs font-mono text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">${s.subject_code}</span>
                   </div>
                   <div class="flex flex-col items-end">
-                    <span class="text-2xl font-bold ${getGradeColor(s.gpa_value)}">${s.grade}</span>
+                    <span class="text-2xl font-bold ${getGradeColor(s.gpa_value)}">${formatGrade(s.grade)}</span>
                     <span class="text-[10px] text-gray-400">เกรด</span>
                   </div>
                 </div>
@@ -232,32 +248,33 @@ function renderGradeReportUI(data) {
                   </div>
                   <div class="text-center border-l border-gray-100">
                     <span class="block text-xs text-gray-400">คะแนน</span>
-                    <span class="font-semibold text-gray-700">${s.total_score}</span>
+                    <span class="font-semibold text-gray-700">${formatScore(s.total_score)}</span>
                   </div>
                   <div class="text-center border-l border-gray-100">
                     <span class="block text-xs text-gray-400">ผล</span>
-                    <span class="font-bold ${s.pass_status === 'ผ่าน' ? 'text-green-600' : 'text-red-600'}">
-                      ${s.pass_status}
+                    <span class="font-bold ${s.pass_status === 'ผ่าน' ? 'text-green-600' : (s.pass_status === 'ไม่ผ่าน' ? 'text-red-600' : 'text-gray-400')}">
+                      ${formatPassStatus(s.pass_status)}
                     </span>
                   </div>
                 </div>
               </div>
             </div>
-          `).join('') : renderEmptyState('ไม่พบข้อมูล', 'fas fa-clipboard-list')}
+          `).join('') : renderEmptyState('ยังไม่มีข้อมูล', 'fas fa-clipboard-list')}
         </div>
 
       </div>
       
-      <div class="mb-8 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100 p-4 md:p-6">
-        <h4 class="text-sm font-bold text-blue-800 mb-4 uppercase tracking-wide opacity-70">สรุปผลการเรียน</h4>
+      <!-- ... (ส่วนล่างของโค้ด สรุปพฤติกรรม ฯลฯ เหมือนเดิม) ... -->
+      <div class="mb-8 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border border-indigo-100 p-4 md:p-6">
+        <h4 class="text-sm font-bold text-indigo-800 mb-4 uppercase tracking-wide opacity-70">สรุปภาพรวม</h4>
         <dl class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
           <div class="bg-white p-3 rounded-lg shadow-sm">
             <dt class="text-xs text-gray-500 mb-1">หน่วยกิตสะสม</dt>
             <dd class="text-xl md:text-2xl font-bold text-gray-800">${gpa.total_credits}</dd>
           </div>
-          <div class="bg-white p-3 rounded-lg shadow-sm ring-2 ring-blue-100">
-            <dt class="text-xs text-blue-600 font-semibold mb-1">เกรดเฉลี่ย (GPA)</dt>
-            <dd class="text-2xl md:text-3xl font-bold text-blue-600">${gpa.total_gpa}</dd>
+          <div class="bg-white p-3 rounded-lg shadow-sm ring-2 ring-indigo-100">
+            <dt class="text-xs text-indigo-600 font-semibold mb-1">เกรดเฉลี่ย (GPA)</dt>
+            <dd class="text-2xl md:text-3xl font-bold text-indigo-600">${gpa.total_gpa}</dd>
           </div>
           <div class="bg-white p-3 rounded-lg shadow-sm">
             <dt class="text-xs text-gray-500 mb-1">คะแนนความประพฤติ</dt>
@@ -274,7 +291,7 @@ function renderGradeReportUI(data) {
         
         <div class="bg-white border rounded-xl p-4 md:p-5 shadow-sm">
           <h4 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
-            <i class="fas fa-heart mr-2 text-red-500"></i> คุณลักษณะอันพึงประสงค์
+            <i class="fas fa-heart mr-2 text-pink-500"></i> คุณลักษณะอันพึงประสงค์
           </h4>
           ${behavior ? `
             <dl class="space-y-3">
@@ -622,4 +639,116 @@ function getGPAColor(gpa_value) {
   if (gpa_value >= 2.0) return 'text-yellow-600';
   if (gpa_value >= 1.0) return 'text-orange-500';
   return 'text-red-600';
+}
+
+function addIndicatorColumn(subId) {
+    const fields = [
+        { name: 'name', label: 'ชื่อตัวชี้วัด', type: 'text', required: true },
+        { name: 'max', label: 'คะแนนเต็ม', type: 'number', required: true }
+    ];
+    
+    showFormModal('เพิ่มตัวชี้วัด', fields, async (d) => {
+        // ⭐️ [จุดที่แก้ไข] ดึงภาคเรียนจาก Dropdown ที่ผู้ใช้เลือกอยู่ ณ ขณะนั้น
+        const semElement = document.getElementById('scoreSemesterSelect');
+        const sem = semElement ? semElement.value : '1'; // ถ้าหาไม่เจอ ให้ Default เป็น 1
+
+        await waitForResponse(
+            () => callServerFunction('addIndicatorToSubject', subId, d.name, d.max, sem), // ส่ง sem ไปด้วย
+            'เพิ่ม...',
+            (res) => {
+                if(res.success) {
+                    showToast('เพิ่มสำเร็จ', 'success');
+                    loadScoreEntry(); // โหลดตารางใหม่
+                }
+            }
+        );
+    });
+}
+
+function showEditIndicatorModal(subId, indId) {
+    const subj = window.currentSubjectData;
+    const ind = subj.indicators.find(i => i.id === indId);
+    const fields = [
+        { name: 'name', label: 'ชื่อตัวชี้วัด', type: 'text', required: true },
+        { name: 'max', label: 'คะแนนเต็ม', type: 'number', required: true }
+    ];
+    
+    showFormModal('แก้ไขตัวชี้วัด', fields, async (d) => {
+        // ⭐️ [จุดที่แก้ไข] ดึงภาคเรียนจาก Dropdown
+        const semElement = document.getElementById('scoreSemesterSelect');
+        const sem = semElement ? semElement.value : '1';
+
+        await waitForResponse(
+            () => callServerFunction('updateIndicatorInSubject', subId, indId, d.name, d.max, sem),
+            'บันทึก...',
+            (res) => {
+                if(res.success) {
+                    showToast('แก้ไขสำเร็จ', 'success');
+                    loadScoreEntry();
+                }
+            }
+        );
+    }, ind);
+}
+
+function handleDeleteIndicator(subId, indId) {
+    showConfirmModal('ยืนยันลบ', 'ต้องการลบตัวชี้วัดนี้หรือไม่?', async () => {
+        // ⭐️ [จุดที่แก้ไข] ดึงภาคเรียนจาก Dropdown
+        const semElement = document.getElementById('scoreSemesterSelect');
+        const sem = semElement ? semElement.value : '1';
+
+        await waitForResponse(
+            () => callServerFunction('deleteIndicatorFromSubject', subId, indId, sem),
+            'กำลังลบ...',
+            (res) => {
+                if(res.success) {
+                    showToast('ลบสำเร็จ', 'success');
+                    loadScoreEntry();
+                }
+            }
+        );
+    }, { confirmColor: 'red' });
+}
+
+async function handleSaveAllScores(subId, clsId, sem, year) {
+    const rows = document.querySelectorAll(`tr[data-student-id]`);
+    const data = [];
+    const ratio = document.getElementById('scoreRatioSelect').value;
+    const cwRatio = parseInt(ratio);
+    const fnRatio = 100 - cwRatio;
+
+    rows.forEach(row => {
+        const sid = row.dataset.studentId;
+        
+        // 1. ดึงคะแนนย่อย (Indicators)
+        const indicators = {};
+        row.querySelectorAll('.score-indicator-input').forEach(inp => {
+             indicators[inp.dataset.indId] = parseFloat(inp.value) || 0;
+        });
+        
+        // 2. ดึงคะแนนปลายภาค
+        const final = parseFloat(row.querySelector('.score-final-input').value) || 0;
+        
+        // 3. [⭐️ สำคัญ ⭐️] ดึงผลรวมและเกรดที่หน้าจอคำนวณไว้แล้ว ส่งไปให้ Server บันทึก
+        const totalEl = document.getElementById(`total-score-${sid}`);
+        const gradeEl = document.getElementById(`grade-${sid}`);
+        
+        const totalScore = parseFloat(totalEl.innerText) || 0;
+        const grade = gradeEl.innerText.trim();
+        const gpaValue = parseFloat(grade) || 0;
+
+        data.push({ 
+            student_id: sid, 
+            scores: { indicators, final },
+            total_score: totalScore,  // ส่งไปด้วย
+            grade: grade,             // ส่งไปด้วย
+            gpa_value: gpaValue       // ส่งไปด้วย
+        });
+    });
+    
+    await waitForResponse(
+        () => callServerFunction('batchSaveScores', subId, clsId, sem, year, data, cwRatio, fnRatio),
+        'บันทึกข้อมูล...',
+        (res) => { if(res.success) showToast('บันทึกสำเร็จ', 'success'); }
+    );
 }

@@ -368,15 +368,16 @@ function showActivityEditModal(studentId) {
         (result) => {
           if (result.success) {
             showToast('บันทึกข้อมูลสำเร็จ', 'success');
-            // 3. อัปเดตข้อมูลใน window.activityData
             const index = window.activityData.students.findIndex(s => s.student_id === studentId);
             if (index !== -1) {
               window.activityData.students[index] = {
-                ...studentData, // ข้อมูลนักเรียน (code, name)
-                ...result.data  // ข้อมูลกิจกรรมที่ Server ส่งกลับมา
+                ...window.activityData.students[index], 
+                ...result.data,
+                
+                // ⭐️ สำคัญมาก: แปลง id เป็น activity_id
+                activity_id: result.data.id
               };
             }
-            // 4. วาด List ใหม่
             renderActivityList();
           }
         }

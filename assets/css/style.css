@@ -1,0 +1,293 @@
+﻿/* =========================================================== */
+/* 🎨 GLOBAL STYLES & FONTS */
+/* =========================================================== */
+@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --primary-color: #2563eb; /* blue-600 */
+  --primary-hover: #1d4ed8; /* blue-700 */
+  --secondary-color: #6b7280; /* gray-500 */
+  --success-color: #16a34a; /* green-600 */
+  --warning-color: #d97706; /* yellow-600 */
+  --danger-color: #dc2626; /* red-600 */
+  --bg-light: #f9fafb; /* gray-50 */
+  --text-main: #1f2937; /* gray-800 */
+  --text-muted: #6b7280; /* gray-500 */
+  --border-color: #e5e7eb; /* gray-200 */
+}
+
+* {
+  font-family: 'Sarabun', sans-serif;
+  box-sizing: border-box;
+}
+
+body {
+  overflow-x: hidden;
+  background-color: var(--bg-light);
+  color: var(--text-main);
+}
+
+/* =========================================================== */
+/* 🖱️ SCROLLBAR (Custom) */
+/* =========================================================== */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #f1f1f1; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* Dark Mode Scrollbar */
+.dark ::-webkit-scrollbar-track { background: #1e293b; }
+.dark ::-webkit-scrollbar-thumb { background: #475569; }
+.dark ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+
+/* =========================================================== */
+/* 🎭 ANIMATIONS */
+/* =========================================================== */
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+@keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+@keyframes slideOutRight { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }
+@keyframes scaleIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes scaleOut { from { transform: scale(1); opacity: 1; } to { transform: scale(0.95); opacity: 0; } }
+@keyframes bounce-gentle { 0%, 100% { transform: translateY(-5%); } 50% { transform: translateY(5%); } }
+@keyframes progress-slide { 0% { transform: translateX(-100%); } 50% { transform: translateX(0%); } 100% { transform: translateX(100%); } }
+
+.animate-bounce-gentle { animation: bounce-gentle 2s infinite ease-in-out; }
+.animate-progress { animation: progress-slide 1.5s infinite linear; }
+.toast-enter { animation: slideInRight 0.3s ease-out; }
+.toast-exit { animation: slideOutRight 0.3s ease-in; }
+.modal-overlay { animation: fadeIn 0.2s ease-out; }
+.modal-content { animation: scaleIn 0.3s ease-out; }
+.modal-overlay.closing { animation: fadeOut 0.2s ease-in; }
+.modal-content.closing { animation: scaleOut 0.2s ease-in; }
+.loader-hidden { opacity: 0; pointer-events: none; visibility: hidden; }
+
+/* =========================================================== */
+/* 🏗️ LAYOUT & SIDEBAR */
+/* =========================================================== */
+/* Sidebar Item */
+.sidebar-item { position: relative; transition: all 0.2s ease; color: #374151; }
+.sidebar-item:hover { background-color: #f3f4f6; color: #111827; }
+.sidebar-item.active { color: var(--primary-color); font-weight: 600; background-color: #eff6ff; }
+.sidebar-item.active i { color: var(--primary-color); }
+.sidebar-item.active::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background-color: var(--primary-color); border-top-right-radius: 4px; border-bottom-right-radius: 4px; }
+
+/* Sidebar Group (Dropdown) */
+.sidebar-group { transition: all 0.2s ease; color: #374151; cursor: pointer; }
+.sidebar-group:hover { background-color: #f3f4f6; color: #111827; }
+.sidebar-group.open { color: var(--primary-color); font-weight: 600; }
+.sidebar-group.open i.fa-chevron-down { transform: rotate(180deg); transition: transform 0.2s; }
+
+/* Sidebar Submenu */
+.sidebar-subitem { color: #4b5563; font-size: 0.875rem; padding-left: 3rem !important; }
+.sidebar-subitem:hover { background-color: #f3f4f6; color: #111827; }
+.sidebar-subitem.active { color: var(--primary-color); font-weight: 600; background-color: #eff6ff; }
+
+/* Mini Sidebar Mode (Desktop) */
+#sidebar.sidebar-mini { width: 5rem; }
+#sidebar.sidebar-mini .sidebar-label,
+#sidebar.sidebar-mini .fa-chevron-down { display: none; }
+#sidebar.sidebar-mini .sidebar-link, 
+#sidebar.sidebar-mini .sidebar-group { justify-content: center; padding-left: 0; padding-right: 0; }
+#sidebar.sidebar-mini .sidebar-submenu { display: none !important; } /* Hide submenu in mini mode */
+
+/* =========================================================== */
+/* 🧩 COMPONENTS */
+/* =========================================================== */
+
+/* Card */
+.card {
+  background: white;
+  border-radius: 0.75rem; /* rounded-xl */
+  box-shadow: 0 1px 3px 0 rgba(0,0,0,0.1), 0 1px 2px 0 rgba(0,0,0,0.06);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border: 1px solid rgba(229, 231, 235, 0.5);
+}
+.card:hover { box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05); }
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  transition: all 0.2s;
+  cursor: pointer;
+  border: 1px solid transparent;
+  outline: none;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+.btn:hover { transform: translateY(-1px); filter: brightness(105%); }
+.btn:active { transform: translateY(0); filter: brightness(95%); }
+.btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+.btn-primary { background-color: var(--primary-color); color: white; box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2); }
+.btn-secondary { background-color: white; color: #374151; border-color: #d1d5db; }
+.btn-secondary:hover { background-color: #f9fafb; border-color: #9ca3af; }
+.btn-success { background-color: var(--success-color); color: white; box-shadow: 0 2px 4px rgba(22, 163, 74, 0.2); }
+.btn-danger { background-color: var(--danger-color); color: white; box-shadow: 0 2px 4px rgba(220, 38, 38, 0.2); }
+.btn-warning { background-color: var(--warning-color); color: white; }
+.btn-info { background-color: #0ea5e9; color: white; } /* sky-500 */
+
+/* Button Sizes */
+.btn-sm { padding: 0.25rem 0.75rem; font-size: 0.75rem; }
+.btn-lg { padding: 0.75rem 1.5rem; font-size: 1rem; }
+
+/* Forms */
+.form-label { display: block; font-size: 0.875rem; font-weight: 500; color: #374151; margin-bottom: 0.375rem; }
+.form-input, .form-select, .form-textarea {
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  background-color: #fff;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  color: #111827;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+.form-input:focus, .form-select:focus, .form-textarea:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+.form-input:disabled, .form-select:disabled { background-color: #f3f4f6; cursor: not-allowed; color: #6b7280; }
+
+/* Tables */
+.data-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+.data-table thead th {
+  background-color: #f9fafb;
+  color: #374151;
+  font-weight: 600;
+  text-align: left;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  white-space: nowrap;
+}
+.data-table tbody td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #f3f4f6;
+  color: #4b5563;
+  vertical-align: middle;
+}
+.data-table tbody tr:hover { background-color: #f9fafb; }
+.data-table tbody tr:last-child td { border-bottom: none; }
+
+/* Badges */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.25rem;
+}
+.badge-success { background-color: #dcfce7; color: #15803d; }
+.badge-warning { background-color: #fef3c7; color: #b45309; }
+.badge-danger { background-color: #fee2e2; color: #b91c1c; }
+.badge-info { background-color: #e0f2fe; color: #0369a1; }
+.badge-secondary { background-color: #f3f4f6; color: #4b5563; }
+
+/* =========================================================== */
+/* 🌙 DARK MODE (Tailwind 'dark' class) */
+/* =========================================================== */
+.dark body { background-color: #0f172a; color: #f1f5f9; }
+.dark .bg-white { background-color: #1e293b !important; }
+.dark .bg-gray-50 { background-color: #0f172a !important; }
+.dark .bg-gray-100 { backg
+
+/* =========================================================== */
+/* 👤 PROFILE PAGE STYLES */
+/* =========================================================== */
+
+/* Tab Buttons Container */
+.profile-tabs-container {
+  display: flex;
+  border-bottom: 1px solid #e5e7eb;
+  margin-bottom: 1.5rem;
+  background-color: #fff;
+  border-radius: 0.5rem 0.5rem 0 0;
+  padding: 0 1rem;
+}
+
+/* Individual Tab Button */
+.profile-tab-btn {
+  display: flex;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #6b7280; /* gray-500 */
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  background: transparent;
+  outline: none;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+}
+
+.profile-tab-btn:hover {
+  color: #374151; /* gray-700 */
+  background-color: #f9fafb; /* gray-50 */
+}
+
+.profile-tab-btn.active {
+  color: #2563eb; /* blue-600 */
+  border-bottom-color: #2563eb;
+}
+
+.profile-tab-btn i {
+  margin-right: 0.5rem;
+}
+
+/* Tab Content Area */
+.profile-tab-content {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+/* Sub-Profile Tabs (สำหรับหน้านักเรียน) */
+.sub-profile-btn {
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #6b7280;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.sub-profile-btn:hover {
+  color: #1f2937;
+  border-bottom-color: #d1d5db;
+}
+
+.sub-profile-btn.active {
+  color: #2563eb;
+  border-bottom-color: #2563eb;
+}
+
+/* Dark Mode Support */
+.dark .profile-tabs-container {
+  background-color: #1e293b;
+  border-bottom-color: #334155;
+}
+
+.dark .profile-tab-btn {
+  color: #94a3b8;
+}
+
+.dark .profile-tab-btn:hover {
+  color: #e2e8f0;
+  background-color: #334155;
+}
+
+.dark .profile-tab-btn.active {
+  color: #60a5fa;
+  border-bottom-color: #60a5fa;
+}
+
